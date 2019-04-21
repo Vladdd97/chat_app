@@ -2,6 +2,7 @@ package sample;
 
 
 import javafx.application.Platform;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 
@@ -14,23 +15,34 @@ import java.util.Iterator;
 
 public class Controller {
 
+    //const
     private final String CHAT = "chat";
     private final String CONNECT = "connect";
     private final String DISCONNECT = "disconnect";
 
-    ArrayList<DataOutputStream> clientOutputStreams;
-    ArrayList<String> clients;
+    //app proprieties
+    private ArrayList<DataOutputStream> clientOutputStreams;
+    private ArrayList<Thread> clientConnections;
+    private boolean isServerStarted = false;
 
     //javaFx controls
     public Button startButton;
     public ListView connectionInfoListView;
 
-    //start server on a new thread
+
     public void onClick_startButton() {
 
         connectionInfoListView.getItems().add("start button was clicked");
-        Thread serverListener = new Thread(new ServerListener());
-        serverListener.start();
+        if (!isServerStarted) {
+            Thread serverListener = new Thread(new ServerListener());
+            serverListener.start();
+            isServerStarted = true;
+        } else {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Server is started!");
+            alert.setHeaderText("Server is already started!!!");
+            alert.showAndWait();
+        }
     }
 
 
@@ -38,7 +50,7 @@ public class Controller {
         @Override
         public void run() {
             clientOutputStreams = new ArrayList();
-            clients = new ArrayList();
+            clientConnections = new ArrayList<>();
 
             try {
                 ServerSocket serverSock = new ServerSocket(8082);
@@ -49,12 +61,14 @@ public class Controller {
                 while (true) {
                     //waiting till a new client will connect to server
                     Socket clientSock = serverSock.accept();
+                    DataInputStream dataInputStream = new DataInputStream(clientSock.getInputStream());
                     DataOutputStream dataOutputStream = new DataOutputStream(clientSock.getOutputStream());
-                    clientOutputStreams.add(dataOutputStream);
 
-                    Thread clientConnection = new Thread(new ClientConnection(clientSock, dataOutputStream));
+                    Thread clientConnection = new Thread(new ClientConnection(dataInputStream, dataOutputStream));
                     clientConnection.start();
 
+                    clientOutputStreams.add(dataOutputStream);
+                    clientConnections.add(clientConnection);
 
                     Platform.runLater(() -> connectionInfoListView.getItems().add("Got a new connection"));
 
@@ -70,80 +84,75 @@ public class Controller {
     public class ClientConnection implements Runnable {
         DataInputStream dataInputStream;
         DataOutputStream dataOutputStream;
-        //BufferedReader reader;
-        //Socket sock;
-        //PrintWriter client;
 
-        public ClientConnection(Socket clientSocket, DataOutputStream dataOutputStream) {
-            // client = user;
-            try {
-                //sock = clientSocket;
 
-                this.dataOutputStream = dataOutputStream;
-                dataInputStream = new DataInputStream(clientSocket.getInputStream());
-                //reader = new BufferedReader(isReader);
-            } catch (Exception ex) {
-                Platform.runLater(() -> connectionInfoListView.getItems().add("Unexpected error..."));
-            }
-
+        public ClientConnection(DataInputStream dataInputStream, DataOutputStream dataOutputStream) {
+            this.dataOutputStream = dataOutputStream;
+            this.dataInputStream = dataInputStream;
         }
 
         @Override
         public void run() {
             String message;
-            String[] data;
+            String[] receivedData;
 
             try {
-                while ((message = dataInputStream.readUTF()) != null) {
+                while (isServerStarted) {
+                    System.out.println("while is running");
+                    message = dataInputStream.readUTF();
                     //comment
-                    System.out.println("Received message: [" + message +"]");
+                    System.out.println("Received message: [" + message + "]");
 
                     String finalMessage = message;
                     Platform.runLater(() -> connectionInfoListView.getItems().add("Received: [" + finalMessage + "]\n"));
 
-                    sendMessageToEveryone(message);
+                    receivedData = message.split("::");
 
-//                    data = message.split(":");
-//
-//                    if (data[0].equalsIgnoreCase(CONNECT)) {
-//                        sendMessageToEveryone(data[1]);
-//                    } else if (data[0].equalsIgnoreCase(DISCONNECT)) {
-//                        sendMessageToEveryone(data[1]);
-//                    } else if (data[0].equalsIgnoreCase(CHAT)) {
-//                        sendMessageToEveryone(data[1]);
-//                    } else {
-//                        Platform.runLater(() -> connectionInfoListView.getItems().add("No Conditions were met. \n"));
-//                    }
+                    if (receivedData[0].equalsIgnoreCase(CONNECT)) {
+                        sendMessageToEveryone(receivedData[1]);
+                    } else if (receivedData[0].equalsIgnoreCase(DISCONNECT)) {
+                        sendMessageToEveryone(receivedData[1]);
+                        closeClientConnection(dataOutputStream);
+                        break;
+                    } else if (receivedData[0].equalsIgnoreCase(CHAT)) {
+                        sendMessageToEveryone(receivedData[1]);
+                    } else {
+                        Platform.runLater(() -> connectionInfoListView.getItems().add("No Conditions were met. \n"));
+                    }
 
                 }
             } catch (Exception ex) {
-                //ta_chat.append("Lost a connection. \n");
                 ex.printStackTrace();
-                clientOutputStreams.remove(dataOutputStream);
+                closeClientConnection(dataOutputStream);
             }
         }
     }
 
-    public void sendMessageToEveryone(String message)
-    {
+    public void closeClientConnection(DataOutputStream dataOutputStream) {
+
+        for (int i = 0; i < clientOutputStreams.size(); i++) {
+            if (clientOutputStreams.get(i).equals(dataOutputStream)) {
+                clientOutputStreams.remove(i);
+                clientConnections.get(i).stop();
+                clientConnections.remove(i);
+            }
+        }
+    }
+
+    public void sendMessageToEveryone(String message) {
         Iterator it = clientOutputStreams.iterator();
 
-        while (it.hasNext())
-        {
-            try
-            {
+        while (it.hasNext()) {
+            try {
                 DataOutputStream dataOutputStream = (DataOutputStream) it.next();
                 dataOutputStream.writeUTF(message);
-                Platform.runLater(() -> connectionInfoListView.getItems().add("Sending: [" + message + "]"));
                 dataOutputStream.flush();
-            }
-            catch (Exception ex)
-            {
-                Platform.runLater(() -> connectionInfoListView.getItems().add("Error telling everyone"));
+                Platform.runLater(() -> connectionInfoListView.getItems().add("Sending: [" + message + "]"));
+            } catch (Exception ex) {
+                Platform.runLater(() -> connectionInfoListView.getItems().add("Error Sending Message To Everyone"));
             }
         }
     }
-
 
 
 }

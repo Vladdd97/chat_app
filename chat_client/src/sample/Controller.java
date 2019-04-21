@@ -11,21 +11,23 @@ import java.net.Socket;
 public class Controller {
 
     //const
-    private final String CHAT = "chat";
-    private final String CONNECT = "connect";
-    private final String DISCONNECT = "disconnect";
+    private final String CHAT = "CHAT";
+    private final String CONNECT = "CONNECT";
+    private final String DISCONNECT = "DISCONNECT";
 
     //app properties
-    DataInputStream dataInputStream;
-    DataOutputStream dataOutputStream;
-    Socket socket;
-    private boolean isConnected = false;
+    private Thread clientListener;
+    private DataInputStream dataInputStream;
+    private DataOutputStream dataOutputStream;
+    private Socket socket;
+    private boolean isClientConnected = false;
     private String username;
 
 
     //javaFx controls
     public Button sendButton;
     public Button connectButton;
+    public Button disconnectButton;
     public ListView chatListView;
     public TextArea messageTextArea;
     public TextField usernameTextField;
@@ -37,7 +39,8 @@ public class Controller {
         String message = messageTextArea.getText();
         messageTextArea.clear();
         try {
-            dataOutputStream.writeUTF(username + ": " + message);
+            dataOutputStream.writeUTF(CHAT + "::" + username + ": " + message);
+            dataOutputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -46,23 +49,22 @@ public class Controller {
 
 
     public void onClick_connectButton() {
-//        username = usernameTextField.getText();
-//        String address = serverTextField.getText();
-//        int port = Integer.valueOf(portTextField.getText());
-        username = "Daniel";
-        String address = "127.0.0.1";
-        int port = 8082;
+        username = usernameTextField.getText();
+        String address = serverTextField.getText();
+        int port = Integer.valueOf(portTextField.getText());
 
 
-        if (!isConnected) {
+        if (!isClientConnected) {
             try {
                 socket = new Socket(address, port);
                 dataInputStream = new DataInputStream(socket.getInputStream());
                 dataOutputStream = new DataOutputStream(socket.getOutputStream());
-                dataOutputStream.writeUTF(username + " has connected");
-                isConnected = true;
+                dataOutputStream.writeUTF(CONNECT + "::" + username + " has connected...");
+                dataOutputStream.flush();
+                isClientConnected = true;
+                usernameTextField.setEditable(false);
 
-                Thread clientListener = new Thread(new ClientListener());
+                clientListener = new Thread(new ClientListener());
                 clientListener.start();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -79,33 +81,34 @@ public class Controller {
 
     }
 
+    public void onClick_disconnectButton() {
+
+        try {
+            dataOutputStream.writeUTF(DISCONNECT + "::" + username + ": has disconnected");
+            dataOutputStream.flush();
+            chatListView.getItems().add(username + ": has disconnected");
+            socket.close();
+            clientListener.stop();
+            isClientConnected = false;
+            usernameTextField.setEditable(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public class ClientListener implements Runnable {
         @Override
         public void run() {
-            String[] data;
             String message;
 
             try {
-                while ((message = dataInputStream.readUTF()) != null) {
+                while (isClientConnected) {
+                    message = dataInputStream.readUTF();
                     //comment
                     System.out.println("Received Message: " + message);
                     String finalMessage = message;
                     Platform.runLater(() -> chatListView.getItems().add(finalMessage));
 
-//
-//                    if (data[0].equals(CHAT))
-//                    {
-//                        Platform.runLater(() -> chatListView.getItems().add(sendMessage));
-//
-//                    }
-//                    else if (data[0].equals(CONNECT))
-//                    {
-//                        Platform.runLater(() -> chatListView.getItems().add(sendMessage));
-//                    }
-//                    else if (data[0].equals(DISCONNECT))
-//                    {
-//                        Platform.runLater(() -> chatListView.getItems().add(sendMessage));
-//                    }
                 }
             } catch (Exception ex) {
             }

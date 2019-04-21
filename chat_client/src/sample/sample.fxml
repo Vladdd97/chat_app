@@ -18,15 +18,15 @@
             <HBox prefHeight="53.0" prefWidth="664.0">
                <children>
                   <Label fx:id="usernameLabel" prefHeight="26.0" prefWidth="70.0" text="Username" />
-                  <TextField fx:id="usernameTextField" />
+                  <TextField fx:id="usernameTextField" text="clientName" />
                </children>
             </HBox>
             <HBox prefHeight="58.0" prefWidth="665.0">
                <children>
                   <Label fx:id="portLabel" prefHeight="25.0" prefWidth="48.0" text="Port" />
-                  <TextField fx:id="portTextField" prefHeight="25.0" prefWidth="56.0" />
+                  <TextField fx:id="portTextField" prefHeight="25.0" prefWidth="56.0" text="8082" />
                   <Label fx:id="serverLabel" prefHeight="25.0" prefWidth="59.0" text="Server" />
-                  <TextField fx:id="serverTextField" />
+                  <TextField fx:id="serverTextField" text="127.0.0.1" />
                </children>
             </HBox>
             <ListView fx:id="chatListView" prefHeight="200.0" prefWidth="200.0" />
@@ -35,6 +35,7 @@
                   <TextArea fx:id="messageTextArea" prefHeight="41.0" prefWidth="200.0" />
                   <Button fx:id="sendButton" mnemonicParsing="false" onAction="#onClick_sendButton" text="Send" />
                   <Button fx:id="connectButton" mnemonicParsing="false" onAction="#onClick_connectButton" text="Connect" />
+                  <Button fx:id="disconnectButton" mnemonicParsing="false" onAction="#onClick_disconnectButton" text="Disconnect" />
                </children>
             </HBox>
          </children>
