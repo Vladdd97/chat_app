@@ -10,8 +10,7 @@ import javafx.scene.control.ListView;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 
 public class Controller {
 
@@ -22,19 +21,22 @@ public class Controller {
 
     //app proprieties
     private ArrayList<DataOutputStream> clientOutputStreams;
-    private ArrayList<Thread> clientConnections;
+    private Map<DataOutputStream,Thread> clientCThreadMap;
+    private Thread serverListener;
+    private ServerSocket serverSock;
     private boolean isServerStarted = false;
 
     //javaFx controls
     public Button startButton;
     public ListView connectionInfoListView;
+    public Button stopButton;
 
 
     public void onClick_startButton() {
 
         connectionInfoListView.getItems().add("start button was clicked");
         if (!isServerStarted) {
-            Thread serverListener = new Thread(new ServerListener());
+            serverListener = new Thread(new ServerListener());
             serverListener.start();
             isServerStarted = true;
         } else {
@@ -45,15 +47,42 @@ public class Controller {
         }
     }
 
+    public void onClick_stopButton(){
+
+        if(isServerStarted){
+
+            try {
+                serverSock.close();
+                serverListener.stop();
+                clientCThreadMap.forEach((k, v) -> {
+                    v.stop();
+                    clientOutputStreams.remove(k);
+                });
+                clientCThreadMap.clear();
+                connectionInfoListView.getItems().add("Server is down...");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+        else{
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("The server is already stopped");
+            alert.setHeaderText("Wait a minute...");
+            alert.setContentText("SERVER IS DOWN!!!");
+            alert.showAndWait();
+        }
+    }
+
 
     public class ServerListener implements Runnable {
         @Override
         public void run() {
             clientOutputStreams = new ArrayList();
-            clientConnections = new ArrayList<>();
+            clientCThreadMap = Collections.synchronizedMap(new HashMap<>());
 
             try {
-                ServerSocket serverSock = new ServerSocket(8082);
+                serverSock = new ServerSocket(8082);
 
                 Platform.runLater(() -> connectionInfoListView.getItems().add("Server Started... Waiting for connections"));
 
@@ -67,8 +96,8 @@ public class Controller {
                     Thread clientConnection = new Thread(new ClientConnection(dataInputStream, dataOutputStream));
                     clientConnection.start();
 
+                    clientCThreadMap.put(dataOutputStream,clientConnection);
                     clientOutputStreams.add(dataOutputStream);
-                    clientConnections.add(clientConnection);
 
                     Platform.runLater(() -> connectionInfoListView.getItems().add("Got a new connection"));
 
@@ -129,14 +158,10 @@ public class Controller {
     }
 
     public void closeClientConnection(DataOutputStream dataOutputStream) {
-
-        for (int i = 0; i < clientOutputStreams.size(); i++) {
-            if (clientOutputStreams.get(i).equals(dataOutputStream)) {
-                clientOutputStreams.remove(i);
-                clientConnections.get(i).stop();
-                clientConnections.remove(i);
-            }
-        }
+        clientOutputStreams.remove(dataOutputStream);
+        Thread thread = clientCThreadMap.get(dataOutputStream);
+        clientCThreadMap.remove(dataOutputStream);
+        thread.stop();
     }
 
     public void sendMessageToEveryone(String message) {

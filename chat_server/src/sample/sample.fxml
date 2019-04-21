@@ -4,6 +4,7 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
@@ -29,7 +30,12 @@
       <VBox alignment="CENTER" prefHeight="492.0" prefWidth="469.0">
          <children>
             <ListView fx:id="connectionInfoListView" prefHeight="430.0" prefWidth="454.0" />
-            <Button fx:id="startButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#onClick_startButton" prefHeight="25.0" prefWidth="223.0" text="Start" />
+            <HBox prefHeight="100.0" prefWidth="200.0">
+               <children>
+                  <Button fx:id="startButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#onClick_startButton" prefHeight="25.0" prefWidth="90.0" text="Start" />
+                  <Button fx:id="stopButton" mnemonicParsing="false" onAction="#onClick_stopButton" prefHeight="25.0" prefWidth="80.0" text="Stop" />
+               </children>
+            </HBox>
          </children>
       </VBox>
    </children>
