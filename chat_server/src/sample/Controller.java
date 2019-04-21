@@ -10,8 +10,13 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class Controller {
+
+    private final String CHAT = "chat";
+    private final String CONNECT = "connect";
+    private final String DISCONNECT = "disconnect";
 
     ArrayList<DataOutputStream> clientOutputStreams;
     ArrayList<String> clients;
@@ -86,7 +91,7 @@ public class Controller {
 
         @Override
         public void run() {
-            String message, connect = "Connect", disconnect = "Disconnect", chat = "Chat";
+            String message;
             String[] data;
 
             try {
@@ -95,8 +100,21 @@ public class Controller {
                     System.out.println("Received message: " + message);
 
                     String finalMessage = message;
-                    Platform.runLater(() -> connectionInfoListView.getItems().add("Received: " + finalMessage + "\n"));
+                    Platform.runLater(() -> connectionInfoListView.getItems().add("Received: [" + finalMessage + "]\n"));
 
+
+                    data = message.split(":");
+
+
+                    if (data[0].equalsIgnoreCase(CONNECT)) {
+                        sendMessageToEveryone(data[1]);
+                    } else if (data[0].equalsIgnoreCase(DISCONNECT)) {
+                        sendMessageToEveryone(data[1]);
+                    } else if (data[0].equalsIgnoreCase(CHAT)) {
+                        sendMessageToEveryone(data[1]);
+                    } else {
+                        Platform.runLater(() -> connectionInfoListView.getItems().add("No Conditions were met. \n"));
+                    }
 
                 }
             } catch (Exception ex) {
@@ -106,6 +124,27 @@ public class Controller {
             }
         }
     }
+
+    public void sendMessageToEveryone(String message)
+    {
+        Iterator it = clientOutputStreams.iterator();
+
+        while (it.hasNext())
+        {
+            try
+            {
+                DataOutputStream dataOutputStream = (DataOutputStream) it.next();
+                dataOutputStream.writeUTF(message);
+                Platform.runLater(() -> connectionInfoListView.getItems().add("Sending: [" + message + "]"));
+                dataOutputStream.flush();
+            }
+            catch (Exception ex)
+            {
+                Platform.runLater(() -> connectionInfoListView.getItems().add("Error telling everyone"));
+            }
+        }
+    }
+
 
 
 }
