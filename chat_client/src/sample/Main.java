@@ -11,8 +11,8 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("chat_server");
-        primaryStage.setScene(new Scene(root, 600, 475));
+        primaryStage.setTitle("chat_client");
+        primaryStage.setScene(new Scene(root, 800, 600));
         primaryStage.show();
     }
 

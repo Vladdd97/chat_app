@@ -29,13 +29,12 @@ public class Controller {
     public void onClick_startButton() {
 
         connectionInfoListView.getItems().add("start button was clicked");
-        Thread startServer = new Thread(new StartServer());
-        startServer.start();
-        System.out.println("new thread!");
+        Thread serverListener = new Thread(new ServerListener());
+        serverListener.start();
     }
 
 
-    public class StartServer implements Runnable {
+    public class ServerListener implements Runnable {
         @Override
         public void run() {
             clientOutputStreams = new ArrayList();
@@ -53,11 +52,11 @@ public class Controller {
                     DataOutputStream dataOutputStream = new DataOutputStream(clientSock.getOutputStream());
                     clientOutputStreams.add(dataOutputStream);
 
-                    Thread listener = new Thread(new ClientHandler(clientSock, dataOutputStream));
-                    listener.start();
+                    Thread clientConnection = new Thread(new ClientConnection(clientSock, dataOutputStream));
+                    clientConnection.start();
 
 
-                    Platform.runLater(() -> connectionInfoListView.getItems().add("Got a connection"));
+                    Platform.runLater(() -> connectionInfoListView.getItems().add("Got a new connection"));
 
                 }
             } catch (Exception ex) {
@@ -68,14 +67,14 @@ public class Controller {
     }
 
 
-    public class ClientHandler implements Runnable {
+    public class ClientConnection implements Runnable {
         DataInputStream dataInputStream;
         DataOutputStream dataOutputStream;
         //BufferedReader reader;
         //Socket sock;
         //PrintWriter client;
 
-        public ClientHandler(Socket clientSocket, DataOutputStream dataOutputStream) {
+        public ClientConnection(Socket clientSocket, DataOutputStream dataOutputStream) {
             // client = user;
             try {
                 //sock = clientSocket;
@@ -97,24 +96,24 @@ public class Controller {
             try {
                 while ((message = dataInputStream.readUTF()) != null) {
                     //comment
-                    System.out.println("Received message: " + message);
+                    System.out.println("Received message: [" + message +"]");
 
                     String finalMessage = message;
                     Platform.runLater(() -> connectionInfoListView.getItems().add("Received: [" + finalMessage + "]\n"));
 
+                    sendMessageToEveryone(message);
 
-                    data = message.split(":");
-
-
-                    if (data[0].equalsIgnoreCase(CONNECT)) {
-                        sendMessageToEveryone(data[1]);
-                    } else if (data[0].equalsIgnoreCase(DISCONNECT)) {
-                        sendMessageToEveryone(data[1]);
-                    } else if (data[0].equalsIgnoreCase(CHAT)) {
-                        sendMessageToEveryone(data[1]);
-                    } else {
-                        Platform.runLater(() -> connectionInfoListView.getItems().add("No Conditions were met. \n"));
-                    }
+//                    data = message.split(":");
+//
+//                    if (data[0].equalsIgnoreCase(CONNECT)) {
+//                        sendMessageToEveryone(data[1]);
+//                    } else if (data[0].equalsIgnoreCase(DISCONNECT)) {
+//                        sendMessageToEveryone(data[1]);
+//                    } else if (data[0].equalsIgnoreCase(CHAT)) {
+//                        sendMessageToEveryone(data[1]);
+//                    } else {
+//                        Platform.runLater(() -> connectionInfoListView.getItems().add("No Conditions were met. \n"));
+//                    }
 
                 }
             } catch (Exception ex) {
