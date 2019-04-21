@@ -58,7 +58,7 @@ public class Controller {
                 Platform.runLater(() -> connectionInfoListView.getItems().add("Server Started... Waiting for connections"));
 
 
-                while (true) {
+                while (isServerStarted) {
                     //waiting till a new client will connect to server
                     Socket clientSock = serverSock.accept();
                     DataInputStream dataInputStream = new DataInputStream(clientSock.getInputStream());

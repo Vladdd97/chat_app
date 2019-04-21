@@ -36,13 +36,21 @@ public class Controller {
 
 
     public void onClick_sendButton() {
-        String message = messageTextArea.getText();
-        messageTextArea.clear();
-        try {
-            dataOutputStream.writeUTF(CHAT + "::" + username + ": " + message);
-            dataOutputStream.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (isClientConnected) {
+            String message = messageTextArea.getText();
+            messageTextArea.clear();
+            try {
+                dataOutputStream.writeUTF(CHAT + "::" + username + ": " + message);
+                dataOutputStream.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("No connection");
+            alert.setHeaderText("Wait a minute...");
+            alert.setContentText("You have to be connected to the server in order to send messages");
+            alert.showAndWait();
         }
 
     }
@@ -83,16 +91,25 @@ public class Controller {
 
     public void onClick_disconnectButton() {
 
-        try {
-            dataOutputStream.writeUTF(DISCONNECT + "::" + username + ": has disconnected");
-            dataOutputStream.flush();
-            chatListView.getItems().add(username + ": has disconnected");
-            socket.close();
-            clientListener.stop();
-            isClientConnected = false;
-            usernameTextField.setEditable(true);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (isClientConnected) {
+            try {
+                dataOutputStream.writeUTF(DISCONNECT + "::" + username + ": has disconnected");
+                dataOutputStream.flush();
+                chatListView.getItems().add(username + ": has disconnected");
+                socket.close();
+                clientListener.stop();
+                isClientConnected = false;
+                usernameTextField.setEditable(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("You are already disconnected");
+            alert.setHeaderText("Wait a minute...");
+            alert.setContentText("You are already disconnected!!!");
+            alert.showAndWait();
         }
     }
 
